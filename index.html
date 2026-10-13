@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Para ti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Great+Vibes&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #060208; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  #start {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    background: var(--bg); color: #ff5a73; cursor: pointer;
+    font-family: Arial, sans-serif; text-align: center; padding: 16px;
+    transition: opacity .8s ease;
+    z-index: 10;
+  }
+  #start.hide { opacity: 0; pointer-events: none; }
+  #start .beat { width: min(46vw, 190px); height: auto; animation: float 2.4s ease-in-out infinite; filter: drop-shadow(0 0 22px #ff2d5555); }
+  #start p { margin: 0; font: italic 400 clamp(24px, 5vmin, 32px) 'Cormorant Garamond', Georgia, serif; letter-spacing: .08em; color: #f5c6cf; text-shadow: 0 0 14px #ff2d5566; animation: glow 2.4s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  @keyframes glow { 0%,100% { opacity: .7; } 50% { opacity: 1; } }
+
+  #ask {
+    position: fixed; left: 50%; display: flex; flex-direction: column; align-items: center;
+    transform: translate(-50%, -50%); text-align: center; z-index: 5;
+    opacity: 0; pointer-events: none; transition: opacity 2.2s ease;
+    font-family: 'Cormorant Garamond', Georgia, serif; color: #fff;
+    width: min(88vw, 540px);
+  }
+  #ask.show { opacity: 1; pointer-events: auto; }
+  #ask h1 { margin: 0; font-weight: 600; font-style: italic; line-height: 1.35; text-shadow: 0 0 12px #ff2d55aa, 0 2px 4px #000; }
+  #ask .pre { display: block; font-size: clamp(17px, 3.5vmin, 25px); color: #f7dbe0; margin-bottom: 14px; }
+  #ask .q { text-wrap: balance;
+    display: block; font-size: clamp(28px, 6.2vmin, 50px); line-height: 1.12; color: #fff;
+    text-shadow: 0 0 12px #ff2d55, 0 0 32px #ff2d55, 0 2px 4px #000;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+  #btns { display: flex; gap: 14px; margin-top: 18px; position: relative; min-height: 48px; }
+  #btns button {
+    font: 700 clamp(15px, 3.4vmin, 20px) Arial, sans-serif; border: 0; border-radius: 999px;
+    padding: 12px 28px; cursor: pointer; color: #fff;
+  }
+  #yes { background: linear-gradient(135deg, #ff2d55, #c40a35); box-shadow: 0 0 18px #ff2d5580; }
+  #no  { background: #3a2a30; color: #e7c6cd; transition: transform .35s cubic-bezier(.2,.8,.3,1); }
+  #yes { transition: transform .3s ease; }
+  #yes:active { transform: scale(.96); }
+
+  #done {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at center, #2a0710ee, #060208f5);
+    color: #fff; text-align: center; padding: 24px; overflow-y: auto;
+    opacity: 0; pointer-events: none; transition: opacity 1.4s ease; z-index: 8;
+  }
+  #done.show { opacity: 1; pointer-events: auto; }
+  #done .card { width: min(92vw, 640px); margin: auto; padding: 8px 4px; }
+  #done h2 {
+    margin: 0 0 6px; font: 400 clamp(54px, 14vmin, 104px)/1.05 'Great Vibes', 'Cormorant Garamond', cursive;
+    color: #ffe3e8; text-shadow: 0 0 16px #ff2d55, 0 0 40px #ff2d5588;
+  }
+  #done .heart { display: inline-block; width: .5em; height: .5em; margin-left: .12em; vertical-align: .05em; fill: #ff2d55; filter: drop-shadow(0 0 10px #ff2d55); animation: hb 1.2s ease-in-out infinite; }
+  @keyframes hb { 0%,100% { transform: scale(1); } 15% { transform: scale(1.22); } 30% { transform: scale(1); } 45% { transform: scale(1.14); } }
+  #done .line { width: 90px; height: 1px; margin: 14px auto 22px; background: linear-gradient(90deg, transparent, #ff5a73, transparent); }
+  #done p {
+    margin: 0; font: italic 400 clamp(19px, 3.4vmin, 26px)/1.65 'Cormorant Garamond', Georgia, serif;
+    color: #f7dbe0; text-shadow: 0 1px 6px #000;
+  }
+  #done .card > * { opacity: 0; transform: translateY(10px); transition: opacity 1.4s ease, transform 1.4s ease; }
+  #done.show .card > * { opacity: 1; transform: none; }
+  #done.show .card > :nth-child(2) { transition-delay: .6s; }
+  #done.show .card > :nth-child(3) { transition-delay: 1.2s; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="ask">
+  <h1><span class="pre">No sé qué nos espera mañana, pero sí sé que me encantaría descubrirlo contigo.</span><span class="q">¿Quieres ser mi novia, Mari?</span></h1>
+  <div id="btns">
+    <button id="yes">Sí</button>
+    <button id="no">No</button>
+  </div>
+</div>
+
+<div id="done">
+  <div class="card">
+    <h2>¡Sí!<svg class="heart" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21.5C5 15.7 1 12.1 1 7.4 1 4.2 3.5 1.8 6.6 1.8c2.1 0 4 1.1 5.4 3 1.4-1.9 3.3-3 5.4-3C20.5 1.8 23 4.2 23 7.4c0 4.7-4 8.3-11 14.1z"/></svg></h2>
+    <div class="line"></div>
+    <p id="msg">Aquí va a ir tu mensaje. Este texto es solo de prueba para ver cómo se acomoda un párrafo un poco más largo, con calma y con cariño, en cualquier tamaño de pantalla.</p>
+  </div>
+</div>
+
+<div id="start">
+  <img class="beat" src="potato.gif" alt="">
+  <p>Toca para comenzar</p>
+</div>
+
+<audio id="song" src="cancion.mp3" preload="auto" loop></audio>
+
+<script>
+(() => {
+  // ---------- Config (portado de love.py) ----------
+  const W = 800;                  // lienzo lógico
+  const SC = 21, OY = 20;
+  const DURATION = 10000;         // ms que tarda en aparecer todo el corazón
+  const ANIM = 700;               // ms de animación por frase
+  const LIFT = 34, GAP = 7;
+  const SIZES = [11, 12, 13, 14];
+  const FONT = 'Arial, "Noto Sans", sans-serif';
+  const BG = [6, 2, 8];
+  const FLASH = [1, .78, .78];
+  const PHRASES = [
+    "I love you", "Seni seviyorum", "Te amo", "Je t'aime",
+    "Ich liebe dich", "Ti amo", "Eu te amo", "Я тебя люблю",
+    "사랑해", "愛してる", "我爱你", "मैं तुमसे प्यार करता हूँ",
+    "Σ' αγαπώ", "Ik hou van jou", "Jag älskar dig", "Kocham cię",
+    "ฉันรักเธอ", "Anh yêu em", "Aku cinta kamu", "Я тебе кохаю",
+    "Te quiero", "Te adoro"
+  ];
+
+  // ---------- Utilidades ----------
+  function mulberry32(a) {
+    return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+  const rnd = mulberry32(11);
+  const uni = (a, b) => a + (b - a) * rnd();
+  const clamp = v => Math.max(0, Math.min(1, v));
+  const mix = (a, b, k) => a.map((p, i) => p + (b[i] - p) * k);
+  const dim = (c, k) => c.map(v => v * k);
+  const BGC = BG.map(v => v / 255);
+  const rgb = c => `rgb(${c.map(v => Math.round(clamp(v) * 255)).join(',')})`;
+
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+  let scale = 1, offX = 0, offY = 0, dpr = 1, vw = 0, vh = 0;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 3);
+    vw = innerWidth; vh = innerHeight;
+    cv.width = vw * dpr; cv.height = vh * dpr;
+    scale = Math.min(vw, vh) / W;
+    offX = (vw - W * scale) / 2;
+    offY = (vh - W * scale) / 2;
+    positionAsk();
+  }
+
+  // ---------- Geometría del corazón ----------
+  const heart = a => {
+    const x = 16 * Math.sin(a) ** 3;
+    const y = 13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a);
+    return [x * SC, y * SC + OY];
+  };
+  const POLY = Array.from({ length: 720 }, (_, i) => heart(2 * Math.PI * i / 720));
+  const EDGES = POLY.map((p, i) => [p, POLY[(i + 1) % POLY.length]]);
+  const YMAX = Math.max(...POLY.map(p => p[1]));
+  const YMIN = Math.min(...POLY.map(p => p[1]));
+  const CY = (YMAX + YMIN) / 2;
+
+  function spans(y) {
+    const xs = [];
+    for (const [[x1, y1], [x2, y2]] of EDGES) {
+      if ((y1 <= y && y < y2) || (y2 <= y && y < y1)) xs.push(x1 + (y - y1) * (x2 - x1) / (y2 - y1));
+    }
+    xs.sort((a, b) => a - b);
+    const out = [];
+    for (let i = 0; i + 1 < xs.length; i += 2) out.push([xs[i], xs[i + 1]]);
+    return out;
+  }
+  function intersect(A, B) {
+    const out = [];
+    for (const a of A) for (const b of B) {
+      const lo = Math.max(a[0], b[0]), hi = Math.min(a[1], b[1]);
+      if (hi - lo > 14) out.push([lo, hi]);
+    }
+    return out;
+  }
+  const dist = (x, y) => Math.hypot(x / (16 * SC), (y - CY) / (14.5 * SC));
+
+  // ---------- Construcción del layout ----------
+  function* phraseCycle() {
+    while (true) {
+      const order = PHRASES.slice();
+      for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+      yield* order;
+    }
+  }
+
+  function build() {
+    const m = document.createElement('canvas').getContext('2d');
+    const measure = (t, s) => { m.font = `bold ${s}px ${FONT}`; return m.measureText(t).width; };
+    const cycle = phraseCycle();
+    const rowH = Math.max(...SIZES) * 1.25 + 3, half = rowH / 2;
+    const placed = [];
+
+    for (let y = YMAX - half; y > YMIN + half; y -= rowH) {
+      const row = intersect(spans(y + half), spans(y - half));
+      for (let [lo, hi] of row) {
+        lo += 4; hi -= 4;
+        let cur = lo + uni(0, 8);
+        const line = [];
+        while (true) {
+          let fit = null;
+          for (let k = 0; k < 10; k++) {
+            const text = cycle.next().value;
+            const size = SIZES[Math.floor(rnd() * SIZES.length)];
+            const w = measure(text, size);
+            if (cur + w <= hi) { fit = [text, size, w]; break; }
+          }
+          if (!fit) break;
+          const [text, size, w] = fit;
+          line.push({ x: cur + w / 2, text, size, w });
+          cur += w + GAP;
+        }
+        if (!line.length) continue;
+        if (line.length > 1) {
+          const last = line[line.length - 1];
+          const left = hi - (last.x + last.w / 2);
+          line.forEach((it, i) => it.x += left * i / (line.length - 1));
+        } else line[0].x = (lo + hi) / 2;
+        line.forEach((it, i) => placed.push({ x: it.x, y, text: it.text, size: it.size, edge: i === 0 || i === line.length - 1 }));
+      }
+    }
+
+    const wine = [.58, 0, .09], crimson = [.90, .05, .14], blood = [.98, .10, .16];
+    for (const p of placed) {
+      const rad = Math.min(1, dist(p.x, p.y));
+      let base = mix(wine, crimson, .25 + .75 * rad);
+      base = mix(base, blood, uni(0, .35) + (p.edge ? .3 : 0));
+      p.color = base.map(v => Math.min(1, v));
+      p.rad = rad;
+      p.dx = uni(-10, 10);
+      p.cy = 400 - p.y;                      // y de canvas (el centro lógico es 400)
+      p.cx = 400 + p.x;
+    }
+    const edges = placed.filter(p => p.edge).sort((a, b) =>
+      ((Math.atan2(a.x, a.y - CY) + 2 * Math.PI) % (2 * Math.PI)) - ((Math.atan2(b.x, b.y - CY) + 2 * Math.PI) % (2 * Math.PI)));
+    const inner = placed.filter(p => !p.edge).map(p => [p, -p.rad + uni(0, .08)])
+      .sort((a, b) => a[1] - b[1]).map(a => a[0]);
+    return edges.concat(inner);
+  }
+
+  const ORDER = build();
+  ORDER.forEach((p, i) => p.t0 = i / ORDER.length * DURATION);
+  const T_ALL = DURATION + ANIM;             // cuando todo ha aparecido
+
+  // ---------- Pregunta final ----------
+  const ask = document.getElementById('ask');
+  function positionAsk() {
+    // centro del corazón en pantalla
+    ask.style.top = (offY + (400 - CY) * scale) + 'px';
+    ask.style.left = (offX + 400 * scale) + 'px';
+  }
+
+  // ---------- Dibujo ----------
+  let t0 = null, askAt = null, shimmerIdx = -1, shimmerUntil = 0, nextShimmer = 0;
+
+  function drawItem(p, now) {
+    const age = now - p.t0;
+    if (age < 0) return;
+    const u = clamp(age / ANIM), e = 1 - (1 - u) ** 3;
+    const c = p.color;
+    const px = p.cx + p.dx * (1 - e), py = p.cy - (1 - e) * LIFT;
+    ctx.font = `bold ${p.size}px ${FONT}`;
+
+    // sombra y halo
+    ctx.fillStyle = rgb(mix(BGC, dim(c, .30), e));
+    ctx.fillText(p.text, px + 2, py + 3);
+    ctx.fillStyle = rgb(mix(BGC, dim(c, .20), e * e));
+    ctx.fillText(p.text, px, py);
+
+    // texto principal con destello al aterrizar
+    const flash = .75 * Math.sin(Math.PI * clamp((u - .55) / .45));
+    let col = mix(mix(BGC, c, e ** 1.5), FLASH, flash);
+    if (p === ORDER[shimmerIdx] && now < shimmerUntil) col = mix(c, FLASH, .6);
+    ctx.fillStyle = rgb(col);
+    ctx.fillText(p.text, px, py);
+  }
+
+  function frame(ts) {
+    if (t0 === null) t0 = ts;
+    const now = ts - t0;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = `rgb(${BG})`;
+    ctx.fillRect(0, 0, vw, vh);
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * offX, dpr * offY);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // brillo suave detrás del corazón
+    const g = ctx.createRadialGradient(400, 400 - CY, 20, 400, 400 - CY, 420);
+    g.addColorStop(0, 'rgba(120,10,40,.20)'); g.addColorStop(1, 'rgba(120,10,40,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, W);
+
+    if (now > T_ALL && now > nextShimmer) {            // destellos aleatorios al final
+      shimmerIdx = Math.floor(rnd() * ORDER.length);
+      shimmerUntil = now + 260; nextShimmer = now + 140;
+    }
+    for (const p of ORDER) drawItem(p, now);
+
+    // oscurecer el centro para que la pregunta se lea
+    if (askAt !== null) {
+      const k = clamp((now - askAt) / 2200);
+      const d = ctx.createRadialGradient(400, 400 - CY, 10, 400, 400 - CY, 310);
+      d.addColorStop(0, `rgba(6,2,8,${.88 * k})`); d.addColorStop(.65, `rgba(6,2,8,${.7 * k})`); d.addColorStop(1, 'rgba(6,2,8,0)');
+      ctx.fillStyle = d; ctx.fillRect(0, 0, W, W);
+    }
+
+    if (askAt === null && now > T_ALL + 1200) {
+      askAt = now; ask.classList.add('show');
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Inicio + audio ----------
+  const start = document.getElementById('start');
+  const song = document.getElementById('song');
+  let began = false;
+  function begin() {
+    if (began) return; began = true;
+    start.classList.add('hide');
+    try { song.volume = .85; const p = song.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+    requestAnimationFrame(frame);
+  }
+  start.addEventListener('click', begin);
+  start.addEventListener('touchend', begin, { passive: true });
+  if (new URLSearchParams(location.search).has('auto')) begin();   // para pruebas
+
+  // ---------- Botones ----------
+  const yes = document.getElementById('yes'), no = document.getElementById('no'), done = document.getElementById('done');
+  yes.addEventListener('click', () => done.classList.add('show'));
+  let dodges = 0, tx = 0, ty = 0;
+  function dodge(ev) {
+    ev.preventDefault();
+    dodges++;
+    const r = no.getBoundingClientRect();
+    const baseL = r.left - tx, baseR = r.right - tx, baseT = r.top - ty, baseB = r.bottom - ty;
+    const m = 12;
+    const minX = m - baseL, maxX = innerWidth - m - baseR;
+    const minY = m - baseT, maxY = innerHeight - m - baseB;
+    let nx = tx, ny = ty;
+    for (let i = 0; i < 12; i++) {                       // busca un punto lejano al actual
+      nx = minX + Math.random() * (maxX - minX);
+      ny = minY + Math.random() * (maxY - minY);
+      if (Math.hypot(nx - tx, ny - ty) > Math.min(innerWidth, innerHeight) * .35) break;
+    }
+    tx = nx; ty = ny;
+    no.style.transform = `translate(${tx}px, ${ty}px)`;
+    yes.style.transform = `scale(${Math.min(1 + dodges * .05, 1.4)})`;
+  }
+  no.addEventListener('mouseenter', dodge);
+  no.addEventListener('touchstart', dodge, { passive: false });
+  no.addEventListener('click', dodge);
+
+  addEventListener('resize', resize);
+  resize();
+})();
+</script>
+</body>
+</html>
